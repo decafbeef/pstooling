@@ -81,4 +81,12 @@ function Update-Tool {
     return $Path   # dot-source the result:  . (Update-Tool)
 }
 
-#Test-Port "192.168.0.2" 80
+function Get-IP {
+    $ips = Get-NetIPAddress -AddressFamily IPv4 |
+        Where-Object { $_.IPAddress -ne '127.0.0.1' }
+    if ($ips.Count -eq 1) {
+        $ips.IPAddress
+    } else {
+        $ips | Select-Object InterfaceAlias, IPAddress
+    }
+}
