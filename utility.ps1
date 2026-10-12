@@ -57,4 +57,33 @@ function Test-Port($hostname, $port, $timeoutMs = 3000) {
     }
 }
 
-Test-Port "192.168.0.2" 80
+function Update-Tool {
+    param(
+        [string]$Url  = "https://raw.githubusercontent.com/decafbeef/pstooling/refs/heads/main/utility.ps1",
+        [string]$Path = "$PSScriptRoot\utility.ps1"
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Path) -or $Path -eq "\utility.ps1") {
+        $Path = Join-Path (Get-Location) "utility.ps1"
+    }
+
+    Write-Host "Fetching $Url" -ForegroundColor Cyan
+    try {
+        $content = Invoke-RestMethod -Uri $Url -ErrorAction Stop
+    } catch {
+        Write-Host "Download failed: $($_.Exception.Message)" -ForegroundColor Red
+        return
+    }
+
+    if ($content -match '<!DOCTYPE html>' -or $content -match '<html') {
+        Write-Host "Got HTML, not a script — check the URL." -ForegroundColor Red
+        return
+    }
+
+    Set-Content -Path $Path -Value $content -Encoding UTF8
+    Write-Host "Saved to $Path" -ForegroundColor Green
+
+    return $Path   # dot-source the result:  . (Update-Tool)
+}
+
+#Test-Port "192.168.0.2" 80
