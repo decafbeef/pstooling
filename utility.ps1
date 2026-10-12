@@ -76,7 +76,7 @@ function Update-Tool {
     }
 
     if ($content -match '<!DOCTYPE html>' -or $content -match '<html') {
-        Write-Host "Got HTML, not a script — check the URL." -ForegroundColor Red
+        Write-Host "Got HTML, not a script - check the URL." -ForegroundColor Red
         return
     }
 
