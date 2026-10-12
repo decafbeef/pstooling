@@ -1,0 +1,60 @@
+function Listen-Port {
+    param(
+        [int]$Port = 80,
+        [switch]$Http,
+        [string]$BindAddress = "0.0.0.0"
+    )
+
+    $ip = [System.Net.IPAddress]::Parse($BindAddress)
+    $listener = [System.Net.Sockets.TcpListener]::new($ip, $Port)
+    try {
+        $listener.Start()
+    } catch {
+        Write-Host "Could not bind ${BindAddress}:${Port} -> $($_.Exception.InnerException.Message)" -ForegroundColor Red
+        return
+    }
+
+    Write-Host "Listening on ${BindAddress}:${Port} ... Ctrl+C to stop" -ForegroundColor Cyan
+    try {
+        while ($true) {
+            if ($listener.Pending()) {
+                $client = $listener.AcceptTcpClient()
+                $stamp  = Get-Date -Format "HH:mm:ss"
+                Write-Host "[$stamp] Connection from $($client.Client.RemoteEndPoint)" -ForegroundColor Green
+
+                if ($Http) {
+                    $stream = $client.GetStream()
+                    $body   = "OK`r`n"
+                    $resp   = "HTTP/1.1 200 OK`r`nContent-Length: $($body.Length)`r`nConnection: close`r`n`r`n$body"
+                    $bytes  = [System.Text.Encoding]::ASCII.GetBytes($resp)
+                    $stream.Write($bytes, 0, $bytes.Length)
+                    $stream.Flush()
+                }
+                $client.Close()
+            } else {
+                Start-Sleep -Milliseconds 200
+            }
+        }
+    } finally {
+        $listener.Stop()
+        Write-Host "Stopped." -ForegroundColor Cyan
+    }
+}
+
+function Test-Port($hostname, $port, $timeoutMs = 3000) {
+    $client = [System.Net.Sockets.TcpClient]::new()
+    try {
+        $task = $client.ConnectAsync($hostname, $port)
+        if ($task.Wait($timeoutMs)) {
+            Write-Host "$hostname`:$port -> OPEN" -ForegroundColor Green
+        } else {
+            Write-Host "$hostname`:$port -> TIMED OUT (firewall / no route)" -ForegroundColor Yellow
+        }
+    } catch {
+        Write-Host "$hostname`:$port -> REFUSED/ERROR: $($_.Exception.InnerException.Message)" -ForegroundColor Red
+    } finally {
+        $client.Dispose()
+    }
+}
+
+Test-Port "192.168.0.2" 80
