@@ -75,11 +75,6 @@ function Update-Tool {
         return
     }
 
-    if ($content -match '<!DOCTYPE html>' -or $content -match '<html') {
-        Write-Host "Got HTML, not a script - check the URL." -ForegroundColor Red
-        return
-    }
-
     Set-Content -Path $Path -Value $content -Encoding UTF8
     Write-Host "Saved to $Path" -ForegroundColor Green
 
